@@ -1,0 +1,48 @@
+
+name: Build Pogodny Bespredel APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Extract Android project
+        run: |
+          mkdir -p build-src
+          ARCHIVE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
+          if [ -z "$ARCHIVE" ]; then
+            echo "Project ZIP not found"
+            exit 1
+          fi
+          unzip -q "$ARCHIVE" -d build-src
+          echo "Project extracted"
+
+      - name: Build APK
+        working-directory: build-src/github-repo-ready
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pogodny-Bespredel-APK
+          path: build-src/github-repo-ready/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
